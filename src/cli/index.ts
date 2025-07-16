@@ -1,4 +1,6 @@
 import inquirer from "inquirer";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
 import {
   ExcelConfig,
   RedmineConfig,
@@ -20,6 +22,24 @@ export class CLI {
    * メインCLI処理
    */
   public async run(): Promise<CLIRunResult> {
+    const argv = await yargs(hideBin(process.argv))
+      .option("dry-run", {
+        alias: "d",
+        type: "boolean",
+        description:
+          "Redmineにチケットを作成せず、処理結果をファイルに出力します。",
+        default: false,
+      })
+      .option("output", {
+        alias: "o",
+        type: "string",
+        description: "dry-run時の出力ファイルパスを指定します。",
+      })
+      .help()
+      .alias("help", "h")
+      .version(false)
+      .parse();
+
     console.log("=== Redmineチケット作成ツール ===\n");
 
     // 1. Excelファイルの設定
@@ -35,6 +55,8 @@ export class CLI {
       excelConfig,
       redmineConfig,
       ticketOptions,
+      dryRun: argv.dryRun,
+      outputFile: argv.output,
     };
   }
 
@@ -323,7 +345,9 @@ export class CLI {
   public async confirmConfiguration(
     excelConfig: ExcelConfig,
     redmineConfig: RedmineConfig,
-    _ticketOptions: TicketCreationOptions
+    _ticketOptions: TicketCreationOptions,
+    dryRun: boolean,
+    outputFile?: string
   ): Promise<boolean> {
     console.log("\n=== 設定確認 ===");
     console.log(`Excelファイル: ${excelConfig.filePath}`);
@@ -333,17 +357,26 @@ export class CLI {
         excelConfig.endRow || "最終行"
       }`
     );
-    console.log(`RedmineURL: ${redmineConfig.baseUrl}`);
-    console.log(`プロジェクトID: ${redmineConfig.projectId}`);
-    console.log(
-      `APIキー: ${SecurityUtils.maskSensitiveInfo(redmineConfig.apiKey)}`
-    );
+    if (dryRun) {
+      console.log("モード: Dry Run (チケットは作成されません)");
+      if (outputFile) {
+        console.log(`出力ファイル: ${outputFile}`);
+      }
+    } else {
+      console.log(`RedmineURL: ${redmineConfig.baseUrl}`);
+      console.log(`プロジェクトID: ${redmineConfig.projectId}`);
+      console.log(
+        `APIキー: ${SecurityUtils.maskSensitiveInfo(redmineConfig.apiKey)}`
+      );
+    }
 
     const { confirmed } = await inquirer.prompt<{ confirmed: boolean }>([
       {
         type: "confirm",
         name: "confirmed",
-        message: "この設定でチケットを作成しますか？",
+        message: dryRun
+          ? "この設定でファイルを出力しますか？"
+          : "この設定でチケットを作成しますか？",
         default: false,
       },
     ]);

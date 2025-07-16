@@ -4,6 +4,7 @@ import { CLI } from "./cli";
 import { ExcelReader } from "./modules/excelReader";
 import { DataTransformer } from "./modules/dataTransformer";
 import { RedmineClient } from "./modules/redmineClient";
+import { FileWriter } from "./modules/fileWriter";
 
 /**
  * メインアプリケーション
@@ -13,13 +14,16 @@ async function main(): Promise<void> {
 
   try {
     // 1. CLI設定の取得
-    const { excelConfig, redmineConfig, ticketOptions } = await cli.run();
+    const { excelConfig, redmineConfig, ticketOptions, dryRun, outputFile } =
+      await cli.run();
 
     // 2. 設定確認
     const confirmed = await cli.confirmConfiguration(
       excelConfig,
       redmineConfig,
-      ticketOptions
+      ticketOptions,
+      dryRun,
+      outputFile
     );
     if (!confirmed) {
       console.log("処理をキャンセルしました。");
@@ -69,22 +73,38 @@ async function main(): Promise<void> {
       `\n作成予定チケット数: 親チケット ${parentTicketsData.length}件, 子チケット ${childTicketsData.length}件`
     );
 
-    // 6. Redmineチケットの作成
-    console.log("\n--- Redmineチケットの作成 ---");
-    const redmineClient = new RedmineClient(redmineConfig);
+    // 6. Redmineチケットの作成またはファイル出力
+    if (dryRun) {
+      if (!outputFile) {
+        console.error(
+          "❌ Dry Runモードでは --output <filepath> オプションで出力ファイルを指定する必要があります。"
+        );
+        process.exit(1);
+      }
+      console.log("\n--- Dry Runモード ---");
+      const fileWriter = new FileWriter();
+      await fileWriter.writeYamlFile(
+        parentTicketsData,
+        childTicketsData,
+        outputFile
+      );
+    } else {
+      console.log("\n--- Redmineチケットの作成 ---");
+      const redmineClient = new RedmineClient(redmineConfig);
 
-    const result = await redmineClient.createTickets(
-      parentTicketsData,
-      childTicketsData,
-      ticketOptions
-    );
+      const result = await redmineClient.createTickets(
+        parentTicketsData,
+        childTicketsData,
+        ticketOptions
+      );
 
-    // 7. 結果の表示
-    redmineClient.displayCreationSummary(result);
+      // 7. 結果の表示
+      redmineClient.displayCreationSummary(result);
 
-    const totalTickets =
-      Object.keys(result.parentTickets).length + result.childTickets.length;
-    cli.displayCompletionMessage(totalTickets);
+      const totalTickets =
+        Object.keys(result.parentTickets).length + result.childTickets.length;
+      cli.displayCompletionMessage(totalTickets);
+    }
   } catch (error) {
     cli.displayError(error as Error);
     process.exit(1);

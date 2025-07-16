@@ -242,4 +242,6 @@ export interface CLIRunResult {
   excelConfig: ExcelConfig;
   redmineConfig: RedmineConfig;
   ticketOptions: TicketCreationOptions;
+  dryRun: boolean;
+  outputFile?: string;
 }
