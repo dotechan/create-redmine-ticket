@@ -92,12 +92,32 @@ export class ExcelReader {
 
     const tasks: TaskEstimate[] = [];
     const endRow = config.endRow || this.getDataRange(config.sheetName).endRow;
+    let currentScreenName = "";
 
     for (let row = config.startRow; row <= endRow; row++) {
+      // 画面・機能名の取得（結合セルを考慮）
+      const screenNameValue = this.getCellValue(
+        worksheet,
+        config.screenNameColumn,
+        row
+      );
+      if (
+        screenNameValue &&
+        this.convertToString(screenNameValue).trim() !== ""
+      ) {
+        currentScreenName = this.convertToString(screenNameValue).trim();
+      }
+
       const taskName = this.getCellValue(worksheet, config.taskNameColumn, row);
 
       // タスク名が空の場合はスキップ
       if (!taskName || this.convertToString(taskName).trim() === "") {
+        continue;
+      }
+
+      // 画面名が設定されていない場合はエラー
+      if (!currentScreenName) {
+        console.warn(`行 ${row}: 画面・機能名が設定されていません`);
         continue;
       }
 
@@ -106,14 +126,9 @@ export class ExcelReader {
         config.detailDesignColumn,
         row
       );
-      const implementation = this.getNumericValue(
+      const implementationUnit = this.getNumericValue(
         worksheet,
-        config.implementationColumn,
-        row
-      );
-      const unitTest = this.getNumericValue(
-        worksheet,
-        config.unitTestColumn,
+        config.implementationUnitColumn,
         row
       );
       const integrationTest = this.getNumericValue(
@@ -124,10 +139,10 @@ export class ExcelReader {
 
       // タスクデータの検証
       const taskData: TaskEstimate = {
+        screenName: currentScreenName,
         taskName: this.convertToString(taskName).trim(),
         detailDesign,
-        implementation,
-        unitTest,
+        implementationUnit,
         integrationTest,
       };
 
@@ -243,6 +258,11 @@ export class ExcelReader {
    * タスク見積データの検証
    */
   private validateTaskEstimate(task: TaskEstimate): ValidationResult {
+    // 画面名の検証
+    if (!task.screenName || task.screenName.trim() === "") {
+      return { isValid: false, error: "画面・機能名が空です" };
+    }
+
     // タスク名の検証
     if (!task.taskName || task.taskName.trim() === "") {
       return { isValid: false, error: "タスク名が空です" };
@@ -251,8 +271,7 @@ export class ExcelReader {
     // 見積工数の検証
     const hours = [
       task.detailDesign,
-      task.implementation,
-      task.unitTest,
+      task.implementationUnit,
       task.integrationTest,
     ];
     for (const hour of hours) {

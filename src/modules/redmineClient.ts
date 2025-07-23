@@ -159,8 +159,12 @@ export class RedmineClient {
       tracker_id: options.trackerId,
       status_id: options.statusId,
       priority_id: options.priorityId,
-      estimated_hours: ticketData.estimatedHours,
     };
+
+    // 予定工数が0より大きい場合のみ設定
+    if (ticketData.estimatedHours > 0) {
+      issue.estimated_hours = ticketData.estimatedHours;
+    }
 
     if (parentId) {
       issue.parent_issue_id = parentId;

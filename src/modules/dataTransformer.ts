@@ -5,6 +5,7 @@ import {
   PROCESS_NAMES,
   HierarchicalTicketData,
   ProjectStatistics,
+  ScreenTaskGroup,
 } from "../types";
 
 export class DataTransformer {
@@ -12,12 +13,33 @@ export class DataTransformer {
    * タスク見積データをプロジェクトデータに変換
    */
   public transformToProjectData(tasks: TaskEstimate[]): ProjectData {
+    // 画面別にタスクをグループ化
+    const screenGroups = this.groupTasksByScreen(tasks);
     const totalEstimate = this.calculateTotalEstimate(tasks);
 
     return {
-      tasks,
+      screenGroups,
       totalEstimate,
     };
+  }
+
+  /**
+   * タスクを画面別にグループ化
+   */
+  private groupTasksByScreen(tasks: TaskEstimate[]): ScreenTaskGroup[] {
+    const screenMap = new Map<string, TaskEstimate[]>();
+
+    tasks.forEach((task) => {
+      if (!screenMap.has(task.screenName)) {
+        screenMap.set(task.screenName, []);
+      }
+      screenMap.get(task.screenName)!.push(task);
+    });
+
+    return Array.from(screenMap.entries()).map(([screenName, tasks]) => ({
+      screenName,
+      tasks,
+    }));
   }
 
   /**
@@ -29,21 +51,19 @@ export class DataTransformer {
     return tasks.reduce(
       (total, task) => ({
         detailDesign: total.detailDesign + task.detailDesign,
-        implementation: total.implementation + task.implementation,
-        unitTest: total.unitTest + task.unitTest,
+        implementationUnit: total.implementationUnit + task.implementationUnit,
         integrationTest: total.integrationTest + task.integrationTest,
       }),
       {
         detailDesign: 0,
-        implementation: 0,
-        unitTest: 0,
+        implementationUnit: 0,
         integrationTest: 0,
       }
     );
   }
 
   /**
-   * 階層構造チケットデータを生成
+   * 階層構造チケットデータを生成（3階層：工程→画面→タスク）
    */
   public generateHierarchicalTicketData(
     projectData: ProjectData
@@ -53,8 +73,7 @@ export class DataTransformer {
     // 各工程について階層構造を作成
     const processTypes = [
       ProcessType.DETAIL_DESIGN,
-      ProcessType.IMPLEMENTATION,
-      ProcessType.UNIT_TEST,
+      ProcessType.IMPLEMENTATION_UNIT,
       ProcessType.INTEGRATION_TEST,
     ];
 
@@ -64,7 +83,7 @@ export class DataTransformer {
         const processTicket = this.createProcessTicket(
           processType,
           processHours,
-          projectData.tasks
+          projectData.screenGroups
         );
         tickets.push(processTicket);
       }
@@ -74,23 +93,60 @@ export class DataTransformer {
   }
 
   /**
-   * 工程別のチケットを作成
+   * 工程別のチケットを作成（3階層構造）
    */
   private createProcessTicket(
     processType: ProcessType,
     totalHours: number,
-    tasks: TaskEstimate[]
+    screenGroups: ScreenTaskGroup[]
   ): HierarchicalTicketData {
     const processName = PROCESS_NAMES[processType];
-    const children: HierarchicalTicketData[] = [];
+    const screenChildren: HierarchicalTicketData[] = [];
 
-    // 各タスクの子チケットを作成
-    for (const task of tasks) {
+    // 各画面について子チケットを作成
+    for (const screenGroup of screenGroups) {
+      const screenHours = this.getScreenHours(screenGroup, processType);
+      if (screenHours > 0) {
+        const screenTicket = this.createScreenTicket(
+          screenGroup,
+          processType,
+          screenHours
+        );
+        screenChildren.push(screenTicket);
+      }
+    }
+
+    const result: HierarchicalTicketData = {
+      subject: processName,
+      description: `プロジェクト全体の${processName}工程です。\n合計見積工数: ${totalHours}時間`,
+      estimatedHours: 0, // 親チケットには予定工数を設定しない
+      processType: processType,
+    };
+
+    if (screenChildren.length > 0) {
+      result.children = screenChildren;
+    }
+
+    return result;
+  }
+
+  /**
+   * 画面別のチケットを作成
+   */
+  private createScreenTicket(
+    screenGroup: ScreenTaskGroup,
+    processType: ProcessType,
+    screenHours: number
+  ): HierarchicalTicketData {
+    const taskChildren: HierarchicalTicketData[] = [];
+
+    // 各タスクについて子チケットを作成
+    for (const task of screenGroup.tasks) {
       const taskHours = this.getTaskHours(task, processType);
       if (taskHours > 0) {
-        children.push({
-          subject: `${task.taskName} - ${processName}`,
-          description: `${task.taskName}の${processName}を行います。`,
+        taskChildren.push({
+          subject: task.taskName,
+          description: `${task.taskName}の${PROCESS_NAMES[processType]}を行います。`,
           estimatedHours: taskHours,
           taskName: task.taskName,
           processType: processType,
@@ -99,14 +155,13 @@ export class DataTransformer {
     }
 
     const result: HierarchicalTicketData = {
-      subject: `プロジェクト全体 - ${processName}`,
-      description: `プロジェクト全体の${processName}工程です。\n合計見積工数: ${totalHours}時間`,
-      estimatedHours: totalHours,
-      processType: processType,
+      subject: screenGroup.screenName,
+      description: `${screenGroup.screenName}の${PROCESS_NAMES[processType]}関連タスクです。\n合計見積工数: ${screenHours}時間`,
+      estimatedHours: 0, // 親チケットには予定工数を設定しない
     };
 
-    if (children.length > 0) {
-      result.children = children;
+    if (taskChildren.length > 0) {
+      result.children = taskChildren;
     }
 
     return result;
@@ -122,15 +177,25 @@ export class DataTransformer {
     switch (processType) {
       case ProcessType.DETAIL_DESIGN:
         return projectData.totalEstimate.detailDesign;
-      case ProcessType.IMPLEMENTATION:
-        return projectData.totalEstimate.implementation;
-      case ProcessType.UNIT_TEST:
-        return projectData.totalEstimate.unitTest;
+      case ProcessType.IMPLEMENTATION_UNIT:
+        return projectData.totalEstimate.implementationUnit;
       case ProcessType.INTEGRATION_TEST:
         return projectData.totalEstimate.integrationTest;
       default:
         return 0;
     }
+  }
+
+  /**
+   * 指定された画面の指定工程の工数を取得
+   */
+  private getScreenHours(
+    screenGroup: ScreenTaskGroup,
+    processType: ProcessType
+  ): number {
+    return screenGroup.tasks.reduce((total, task) => {
+      return total + this.getTaskHours(task, processType);
+    }, 0);
   }
 
   /**
@@ -140,10 +205,8 @@ export class DataTransformer {
     switch (processType) {
       case ProcessType.DETAIL_DESIGN:
         return task.detailDesign;
-      case ProcessType.IMPLEMENTATION:
-        return task.implementation;
-      case ProcessType.UNIT_TEST:
-        return task.unitTest;
+      case ProcessType.IMPLEMENTATION_UNIT:
+        return task.implementationUnit;
       case ProcessType.INTEGRATION_TEST:
         return task.integrationTest;
       default:
@@ -155,17 +218,22 @@ export class DataTransformer {
    * プロジェクト統計情報を生成
    */
   public getProjectStatistics(projectData: ProjectData): ProjectStatistics {
-    const totalTasks = projectData.tasks.length;
+    const totalTasks = projectData.screenGroups.reduce(
+      (sum, group) => sum + group.tasks.length,
+      0
+    );
     const totalHours =
       projectData.totalEstimate.detailDesign +
-      projectData.totalEstimate.implementation +
-      projectData.totalEstimate.unitTest +
+      projectData.totalEstimate.implementationUnit +
       projectData.totalEstimate.integrationTest;
+
+    // 全タスクを平坦化
+    const allTasks = projectData.screenGroups.flatMap((group) => group.tasks);
 
     const processBreakdown = {
       [ProcessType.DETAIL_DESIGN]: {
         hours: projectData.totalEstimate.detailDesign,
-        taskCount: projectData.tasks.filter((t) => t.detailDesign > 0).length,
+        taskCount: allTasks.filter((t) => t.detailDesign > 0).length,
         percentage:
           totalHours > 0
             ? Math.round(
@@ -173,30 +241,20 @@ export class DataTransformer {
               )
             : 0,
       },
-      [ProcessType.IMPLEMENTATION]: {
-        hours: projectData.totalEstimate.implementation,
-        taskCount: projectData.tasks.filter((t) => t.implementation > 0).length,
+      [ProcessType.IMPLEMENTATION_UNIT]: {
+        hours: projectData.totalEstimate.implementationUnit,
+        taskCount: allTasks.filter((t) => t.implementationUnit > 0).length,
         percentage:
           totalHours > 0
             ? Math.round(
-                (projectData.totalEstimate.implementation / totalHours) * 100
-              )
-            : 0,
-      },
-      [ProcessType.UNIT_TEST]: {
-        hours: projectData.totalEstimate.unitTest,
-        taskCount: projectData.tasks.filter((t) => t.unitTest > 0).length,
-        percentage:
-          totalHours > 0
-            ? Math.round(
-                (projectData.totalEstimate.unitTest / totalHours) * 100
+                (projectData.totalEstimate.implementationUnit / totalHours) *
+                  100
               )
             : 0,
       },
       [ProcessType.INTEGRATION_TEST]: {
         hours: projectData.totalEstimate.integrationTest,
-        taskCount: projectData.tasks.filter((t) => t.integrationTest > 0)
-          .length,
+        taskCount: allTasks.filter((t) => t.integrationTest > 0).length,
         percentage:
           totalHours > 0
             ? Math.round(

@@ -3,10 +3,10 @@ export interface ExcelConfig {
   filePath: string;
   sheetName: string;
   headerRow: number;
+  screenNameColumn: string; // 画面・機能列
   taskNameColumn: string;
   detailDesignColumn: string;
-  implementationColumn: string;
-  unitTestColumn: string;
+  implementationUnitColumn: string; // 実装単体列（実装+単体試験）
   integrationTestColumn: string;
   startRow: number;
   endRow?: number;
@@ -29,19 +29,24 @@ export interface HierarchicalTicketFile {
 
 // 中間表現の型定義
 export interface TaskEstimate {
-  taskName: string;
+  screenName: string; // 画面・機能名（ホーム画面、一覧画面等）
+  taskName: string; // タスク名
   detailDesign: number;
-  implementation: number;
-  unitTest: number;
+  implementationUnit: number; // 実装+単体試験
   integrationTest: number;
 }
 
-export interface ProjectData {
+// 画面別タスクグループ
+export interface ScreenTaskGroup {
+  screenName: string;
   tasks: TaskEstimate[];
+}
+
+export interface ProjectData {
+  screenGroups: ScreenTaskGroup[]; // 画面別にグループ化
   totalEstimate: {
     detailDesign: number;
-    implementation: number;
-    unitTest: number;
+    implementationUnit: number; // 実装+単体試験
     integrationTest: number;
   };
 }
@@ -131,16 +136,14 @@ export interface RedminePriority {
 // 工程の種類
 export enum ProcessType {
   DETAIL_DESIGN = "detail_design",
-  IMPLEMENTATION = "implementation",
-  UNIT_TEST = "unit_test",
+  IMPLEMENTATION_UNIT = "implementation_unit", // 実装+単体試験
   INTEGRATION_TEST = "integration_test",
 }
 
 // 工程名の日本語マッピング
 export const PROCESS_NAMES = {
   [ProcessType.DETAIL_DESIGN]: "詳細設計",
-  [ProcessType.IMPLEMENTATION]: "実装",
-  [ProcessType.UNIT_TEST]: "単体試験",
+  [ProcessType.IMPLEMENTATION_UNIT]: "実装単体", // 実装+単体試験
   [ProcessType.INTEGRATION_TEST]: "結合試験",
 } as const;
 

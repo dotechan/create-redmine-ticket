@@ -4,9 +4,9 @@ Excel で作成された見積情報から Redmine のチケットを自動作�
 
 ## 機能概要
 
-- Excel ファイルから行単位でタスクと工程別見積工数を読み取り
-- 詳細設計、実装、単体試験、結合試験の 4 工程に対応
-- 各工程の親チケットと、タスク別の子チケットを自動作成
+- Excel ファイルから画面・機能別にタスクと工程別見積工数を読み取り
+- 詳細設計、実装単体、結合試験の 3 工程に対応
+- **3 階層構造**: 工程 → 画面 → タスクの階層でチケットを自動作成
 - 親子関係の設定と見積工数の反映
 - **3 段階のワークフロー**: Excel→YAML/HTML→ 確認 → 登録
 - YAML 形式の中間ファイルによる内容確認・編集機能
@@ -106,10 +106,10 @@ npm start                       # ビルド後実行
 - **シート選択**: 対象となるワークシートを選択
 - **ヘッダー行**: 列名が記載されている行番号を指定
 - **列の設定**: 各項目に対応する列を選択
+  - 画面・機能名の列
   - タスク名の列
   - 詳細設計工数の列
-  - 実装工数の列
-  - 単体試験工数の列
+  - 実装単体工数の列
   - 結合試験工数の列
 - **データ範囲**: 読み取り対象の開始行・終了行を指定
 
@@ -138,121 +138,203 @@ npm start                       # ビルド後実行
 
 #### 必要な列
 
-| 列名例   | 内容                       | 必須 |
-| -------- | -------------------------- | ---- |
-| タスク名 | 作業項目の名称             | ✓    |
-| 詳細設計 | 詳細設計の見積工数（人日） | ✓    |
-| 実装     | 実装の見積工数（人日）     | ✓    |
-| 単体試験 | 単体試験の見積工数（人日） | ✓    |
-| 結合試験 | 結合試験の見積工数（人日） | ✓    |
+| 列名例     | 内容                            | 必須 | 備考                                 |
+| ---------- | ------------------------------- | ---- | ------------------------------------ |
+| 画面・機能 | 画面や機能の分類名              | ✓    | 結合セル対応（同一画面をグループ化） |
+| タスク名   | 作業項目の名称                  | ✓    |                                      |
+| 詳細設計   | 詳細設計の見積工数（人日）      | ✓    |                                      |
+| 実装単体   | 実装+単体試験の見積工数（人日） | ✓    |                                      |
+| 結合試験   | 結合試験の見積工数（人日）      | ✓    |                                      |
 
 #### サンプルデータ
 
 ```
-| タスク名 | 詳細設計 | 実装 | 単体試験 | 結合試験 |
-|----------|----------|------|----------|----------|
-| ユーザー認証機能 | 2.0 | 5.0 | 2.0 | 1.0 |
-| データ検索機能 | 1.5 | 3.0 | 1.5 | 0.5 |
-| レポート出力機能 | 3.0 | 8.0 | 3.0 | 2.0 |
+| 画面・機能 | タスク名           | 詳細設計 | 実装単体 | 結合試験 |
+|------------|-------------------|----------|----------|----------|
+| ホーム画面 | ログインする       | 8        | 16       | 8        |
+|            | ログアウトする     | 8        | 16       | 8        |
+|            | 一覧画面に遷移する | 8        | 16       | 8        |
+| 一覧画面   | 一覧表示する       | 4        | 8        | 4        |
+|            | スクロールする     | 1        | 2        | 1        |
+|            | 詳細画面に遷移する | 1        | 2        | 1        |
+| 詳細画面   | 詳細を表示する     | 4        | 8        | 4        |
 ```
+
+**注意**: 画面・機能列は結合セルを使用して同一画面のタスクをグループ化できます。
 
 ### YAML 中間ファイルの形式
 
-階層構造でチケットの親子関係を直感的に表現します：
+3 階層構造（工程 → 画面 → タスク）でチケットの親子関係を直感的に表現します：
 
 ```yaml
 tickets:
-  - subject: プロジェクト全体 - 詳細設計
+  - subject: 詳細設計
     description: プロジェクト全体の詳細設計工程です。
-    estimatedHours: 6.5
+    estimatedHours: 34
     processType: detail_design
     children:
-      - subject: ユーザー認証機能 - 詳細設計
-        description: ユーザー認証機能の詳細設計を行います。
-        estimatedHours: 2.0
-        taskName: ユーザー認証機能
-        processType: detail_design
-      - subject: データ検索機能 - 詳細設計
-        description: データ検索機能の詳細設計を行います。
-        estimatedHours: 1.5
-        taskName: データ検索機能
-        processType: detail_design
-      - subject: レポート出力機能 - 詳細設計
-        description: レポート出力機能の詳細設計を行います。
-        estimatedHours: 3.0
-        taskName: レポート出力機能
-        processType: detail_design
+      - subject: ホーム画面
+        description: ホーム画面の詳細設計関連タスクです。
+        estimatedHours: 24
+        children:
+          - subject: ログインする
+            description: ログインするの詳細設計を行います。
+            estimatedHours: 8
+            taskName: ログインする
+            processType: detail_design
+          - subject: ログアウトする
+            description: ログアウトするの詳細設計を行います。
+            estimatedHours: 8
+            taskName: ログアウトする
+            processType: detail_design
+          - subject: 一覧画面に遷移する
+            description: 一覧画面に遷移するの詳細設計を行います。
+            estimatedHours: 8
+            taskName: 一覧画面に遷移する
+            processType: detail_design
+      - subject: 一覧画面
+        description: 一覧画面の詳細設計関連タスクです。
+        estimatedHours: 6
+        children:
+          - subject: 一覧表示する
+            description: 一覧表示するの詳細設計を行います。
+            estimatedHours: 4
+            taskName: 一覧表示する
+            processType: detail_design
+          - subject: スクロールする
+            description: スクロールするの詳細設計を行います。
+            estimatedHours: 1
+            taskName: スクロールする
+            processType: detail_design
+          - subject: 詳細画面に遷移する
+            description: 詳細画面に遷移するの詳細設計を行います。
+            estimatedHours: 1
+            taskName: 詳細画面に遷移する
+            processType: detail_design
+      - subject: 詳細画面
+        description: 詳細画面の詳細設計関連タスクです。
+        estimatedHours: 4
+        children:
+          - subject: 詳細を表示する
+            description: 詳細を表示するの詳細設計を行います。
+            estimatedHours: 4
+            taskName: 詳細を表示する
+            processType: detail_design
 
-  - subject: プロジェクト全体 - 実装
-    description: プロジェクト全体の実装工程です。
-    estimatedHours: 16.0
-    processType: implementation
+  - subject: 実装単体
+    description: プロジェクト全体の実装単体工程です。
+    estimatedHours: 68
+    processType: implementation_unit
     children:
-      - subject: ユーザー認証機能 - 実装
-        description: ユーザー認証機能の実装を行います。
-        estimatedHours: 5.0
-        taskName: ユーザー認証機能
-        processType: implementation
-      - subject: データ検索機能 - 実装
-        description: データ検索機能の実装を行います。
-        estimatedHours: 3.0
-        taskName: データ検索機能
-        processType: implementation
-      - subject: レポート出力機能 - 実装
-        description: レポート出力機能の実装を行います。
-        estimatedHours: 8.0
-        taskName: レポート出力機能
-        processType: implementation
+      - subject: ホーム画面
+        description: ホーム画面の実装単体関連タスクです。
+        estimatedHours: 48
+        children:
+          - subject: ログインする
+            description: ログインするの実装単体を行います。
+            estimatedHours: 16
+            taskName: ログインする
+            processType: implementation_unit
+          - subject: ログアウトする
+            description: ログアウトするの実装単体を行います。
+            estimatedHours: 16
+            taskName: ログアウトする
+            processType: implementation_unit
+          - subject: 一覧画面に遷移する
+            description: 一覧画面に遷移するの実装単体を行います。
+            estimatedHours: 16
+            taskName: 一覧画面に遷移する
+            processType: implementation_unit
+      - subject: 一覧画面
+        description: 一覧画面の実装単体関連タスクです。
+        estimatedHours: 12
+        children:
+          - subject: 一覧表示する
+            description: 一覧表示するの実装単体を行います。
+            estimatedHours: 8
+            taskName: 一覧表示する
+            processType: implementation_unit
+          - subject: スクロールする
+            description: スクロールするの実装単体を行います。
+            estimatedHours: 2
+            taskName: スクロールする
+            processType: implementation_unit
+          - subject: 詳細画面に遷移する
+            description: 詳細画面に遷移するの実装単体を行います。
+            estimatedHours: 2
+            taskName: 詳細画面に遷移する
+            processType: implementation_unit
+      - subject: 詳細画面
+        description: 詳細画面の実装単体関連タスクです。
+        estimatedHours: 8
+        children:
+          - subject: 詳細を表示する
+            description: 詳細を表示するの実装単体を行います。
+            estimatedHours: 8
+            taskName: 詳細を表示する
+            processType: implementation_unit
 
-  - subject: プロジェクト全体 - 単体試験
-    description: プロジェクト全体の単体試験工程です。
-    estimatedHours: 6.5
-    processType: unit_test
-    children:
-      - subject: ユーザー認証機能 - 単体試験
-        description: ユーザー認証機能の単体試験を行います。
-        estimatedHours: 2.0
-        taskName: ユーザー認証機能
-        processType: unit_test
-      - subject: データ検索機能 - 単体試験
-        description: データ検索機能の単体試験を行います。
-        estimatedHours: 1.5
-        taskName: データ検索機能
-        processType: unit_test
-      - subject: レポート出力機能 - 単体試験
-        description: レポート出力機能の単体試験を行います。
-        estimatedHours: 3.0
-        taskName: レポート出力機能
-        processType: unit_test
-
-  - subject: プロジェクト全体 - 結合試験
+  - subject: 結合試験
     description: プロジェクト全体の結合試験工程です。
-    estimatedHours: 3.5
+    estimatedHours: 34
     processType: integration_test
     children:
-      - subject: ユーザー認証機能 - 結合試験
-        description: ユーザー認証機能の結合試験を行います。
-        estimatedHours: 1.0
-        taskName: ユーザー認証機能
-        processType: integration_test
-      - subject: データ検索機能 - 結合試験
-        description: データ検索機能の結合試験を行います。
-        estimatedHours: 0.5
-        taskName: データ検索機能
-        processType: integration_test
-      - subject: レポート出力機能 - 結合試験
-        description: レポート出力機能の結合試験を行います。
-        estimatedHours: 2.0
-        taskName: レポート出力機能
-        processType: integration_test
+      - subject: ホーム画面
+        description: ホーム画面の結合試験関連タスクです。
+        estimatedHours: 24
+        children:
+          - subject: ログインする
+            description: ログインするの結合試験を行います。
+            estimatedHours: 8
+            taskName: ログインする
+            processType: integration_test
+          - subject: ログアウトする
+            description: ログアウトするの結合試験を行います。
+            estimatedHours: 8
+            taskName: ログアウトする
+            processType: integration_test
+          - subject: 一覧画面に遷移する
+            description: 一覧画面に遷移するの結合試験を行います。
+            estimatedHours: 8
+            taskName: 一覧画面に遷移する
+            processType: integration_test
+      - subject: 一覧画面
+        description: 一覧画面の結合試験関連タスクです。
+        estimatedHours: 6
+        children:
+          - subject: 一覧表示する
+            description: 一覧表示するの結合試験を行います。
+            estimatedHours: 4
+            taskName: 一覧表示する
+            processType: integration_test
+          - subject: スクロールする
+            description: スクロールするの結合試験を行います。
+            estimatedHours: 1
+            taskName: スクロールする
+            processType: integration_test
+          - subject: 詳細画面に遷移する
+            description: 詳細画面に遷移するの結合試験を行います。
+            estimatedHours: 1
+            taskName: 詳細画面に遷移する
+            processType: integration_test
+      - subject: 詳細画面
+        description: 詳細画面の結合試験関連タスクです。
+        estimatedHours: 4
+        children:
+          - subject: 詳細を表示する
+            description: 詳細を表示するの結合試験を行います。
+            estimatedHours: 4
+            taskName: 詳細を表示する
+            processType: integration_test
 ```
 
 #### 階層構造の特徴
 
+- **3 階層構造**: 工程（レベル 0）→ 画面（レベル 1）→ タスク（レベル 2）の明確な階層
 - **直感的な親子関係**: YAML のネスト構造で親子関係が一目で理解できます
-- **3 段階以上の階層対応**: 必要に応じてさらに深い階層も作成可能
+- **画面別グループ化**: 同一画面のタスクが自動的にグループ化されます
 - **柔軟な編集**: YAML 形式で手動編集が容易
-- **processType**: 工程を識別するフィールド（detail_design, implementation, unit_test, integration_test）
+- **processType**: 工程を識別するフィールド（detail_design, implementation_unit, integration_test）
 
 ### HTML プレビューファイル
 
@@ -263,59 +345,74 @@ tickets:
 
 ## 作成されるチケット構造
 
-### 階層構造チケット
+### 3 階層構造チケット
 
-チケットは階層構造で作成され、親子関係が自動的に設定されます：
+チケットは 3 階層構造で作成され、親子関係が自動的に設定されます：
 
 #### 工程別の親チケット（レベル 0）
 
-- **プロジェクト全体 - 詳細設計**: 全タスクの詳細設計工程をまとめた親チケット
-- **プロジェクト全体 - 実装**: 全タスクの実装工程をまとめた親チケット
-- **プロジェクト全体 - 単体試験**: 全タスクの単体試験工程をまとめた親チケット
-- **プロジェクト全体 - 結合試験**: 全タスクの結合試験工程をまとめた親チケット
+- **詳細設計**: 全画面・全タスクの詳細設計工程をまとめた最上位親チケット
+- **実装単体**: 全画面・全タスクの実装単体工程をまとめた最上位親チケット
+- **結合試験**: 全画面・全タスクの結合試験工程をまとめた最上位親チケット
 
-#### タスク別の子チケット（レベル 1）
+#### 画面別の子チケット（レベル 1）
 
-- 各タスクの各工程に対応する子チケット
-- 親チケットとの関連付け
+- 各工程の配下に画面・機能別の子チケットを作成
+- 同一画面のタスクをグループ化
+- 画面単位での工数集計
+
+#### タスク別の孫チケット（レベル 2）
+
+- 各画面の配下に個別タスクの孫チケットを作成
+- 実際の作業単位でのチケット
 - 見積工数の設定
 
-#### 階層構造の例
+#### 3 階層構造の例
 
 ```
-プロジェクト全体 - 詳細設計（レベル0：親）
-├── ユーザー認証機能 - 詳細設計（レベル1：子）
-├── データ検索機能 - 詳細設計（レベル1：子）
-└── レポート出力機能 - 詳細設計（レベル1：子）
+詳細設計（レベル0：工程）
+├── ホーム画面（レベル1：画面）
+│   ├── ログインする（レベル2：タスク）
+│   ├── ログアウトする（レベル2：タスク）
+│   └── 一覧画面に遷移する（レベル2：タスク）
+├── 一覧画面（レベル1：画面）
+│   ├── 一覧表示する（レベル2：タスク）
+│   ├── スクロールする（レベル2：タスク）
+│   └── 詳細画面に遷移する（レベル2：タスク）
+└── 詳細画面（レベル1：画面）
+    └── 詳細を表示する（レベル2：タスク）
 
-プロジェクト全体 - 実装（レベル0：親）
-├── ユーザー認証機能 - 実装（レベル1：子）
-├── データ検索機能 - 実装（レベル1：子）
-└── レポート出力機能 - 実装（レベル1：子）
+実装単体（レベル0：工程）
+├── ホーム画面（レベル1：画面）
+│   ├── ログインする（レベル2：タスク）
+│   ├── ログアウトする（レベル2：タスク）
+│   └── 一覧画面に遷移する（レベル2：タスク）
+├── 一覧画面（レベル1：画面）
+│   ├── 一覧表示する（レベル2：タスク）
+│   ├── スクロールする（レベル2：タスク）
+│   └── 詳細画面に遷移する（レベル2：タスク）
+└── 詳細画面（レベル1：画面）
+    └── 詳細を表示する（レベル2：タスク）
 
-プロジェクト全体 - 単体試験（レベル0：親）
-├── ユーザー認証機能 - 単体試験（レベル1：子）
-├── データ検索機能 - 単体試験（レベル1：子）
-└── レポート出力機能 - 単体試験（レベル1：子）
-
-プロジェクト全体 - 結合試験（レベル0：親）
-├── ユーザー認証機能 - 結合試験（レベル1：子）
-├── データ検索機能 - 結合試験（レベル1：子）
-└── レポート出力機能 - 結合試験（レベル1：子）
+結合試験（レベル0：工程）
+├── ホーム画面（レベル1：画面）
+│   ├── ログインする（レベル2：タスク）
+│   ├── ログアウトする（レベル2：タスク）
+│   └── 一覧画面に遷移する（レベル2：タスク）
+├── 一覧画面（レベル1：画面）
+│   ├── 一覧表示する（レベル2：タスク）
+│   ├── スクロールする（レベル2：タスク）
+│   └── 詳細画面に遷移する（レベル2：タスク）
+└── 詳細画面（レベル1：画面）
+    └── 詳細を表示する（レベル2：タスク）
 ```
 
-#### 拡張可能な階層構造
+#### 3 階層構造の利点
 
-必要に応じて、さらに深い階層（レベル 2、レベル 3...）も作成可能です：
-
-```
-プロジェクト全体 - 実装（レベル0）
-└── ユーザー管理機能 - 実装（レベル1）
-    ├── 認証API実装（レベル2）
-    │   ├── ログインAPI実装（レベル3）
-    │   └── ログアウトAPI実装（レベル3）
-    └── ユーザー情報API実装（レベル2）
-```
+- **明確な責任分離**: 工程・画面・タスクの責任が明確
+- **効率的な管理**: 画面単位でのタスク管理が可能
+- **柔軟な拡張**: さらに深い階層（レベル 3 以降）も作成可能
+- **直感的な理解**: 実際の開発フローに沿った構造
 
 ## Redmine API 設定
 
@@ -346,6 +443,7 @@ Redmine 管理者による以下の設定が必要です：
 - **ファイルが見つからない**: パスが正しいか確認
 - **シートが見つからない**: シート名が正しいか確認
 - **データが読み取れない**: 列の指定や数値形式を確認
+- **画面・機能名が空**: 結合セルの設定や画面名の入力を確認
 
 #### YAML ファイル関連
 
@@ -449,3 +547,5 @@ MIT License
 - HTML プレビューは確認用途のみで、実際のチケット作成は YAML ファイルに基づいて行われます
 - 階層構造は最大 10 階層まで対応していますが、深すぎる階層は避けることを推奨します
 - 階層構造の YAML ファイルでは、`children`プロパティのインデントに特に注意してください
+- **3 階層構造**: 工程 → 画面 → タスクの構造で、同一画面のタスクは自動的にグループ化されます
+- **画面・機能列**: Excel の結合セルを使用して同一画面のタスクをグループ化できます
