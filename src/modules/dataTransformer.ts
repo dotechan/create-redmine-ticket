@@ -4,6 +4,9 @@ import {
   ProcessType,
   PROCESS_NAMES,
   HierarchicalTicketData,
+  ProcessTicketData,
+  ScreenTicketData,
+  TaskTicketData,
   ProjectStatistics,
   ScreenTaskGroup,
 } from "../types";
@@ -99,7 +102,7 @@ export class DataTransformer {
     processType: ProcessType,
     totalHours: number,
     screenGroups: ScreenTaskGroup[]
-  ): HierarchicalTicketData {
+  ): ProcessTicketData {
     const processName = PROCESS_NAMES[processType];
     const screenChildren: HierarchicalTicketData[] = [];
 
@@ -116,11 +119,12 @@ export class DataTransformer {
       }
     }
 
-    const result: HierarchicalTicketData = {
+    const result: ProcessTicketData = {
+      type: "process",
+      processType: processType,
       subject: processName,
       description: `プロジェクト全体の${processName}工程です。\n合計見積工数: ${totalHours}時間`,
       estimatedHours: 0, // 親チケットには予定工数を設定しない
-      processType: processType,
     };
 
     if (screenChildren.length > 0) {
@@ -137,24 +141,28 @@ export class DataTransformer {
     screenGroup: ScreenTaskGroup,
     processType: ProcessType,
     screenHours: number
-  ): HierarchicalTicketData {
+  ): ScreenTicketData {
     const taskChildren: HierarchicalTicketData[] = [];
 
     // 各タスクについて子チケットを作成
     for (const task of screenGroup.tasks) {
       const taskHours = this.getTaskHours(task, processType);
       if (taskHours > 0) {
-        taskChildren.push({
+        const taskTicket: TaskTicketData = {
+          type: "task",
+          processType: processType,
+          taskName: task.taskName,
           subject: task.taskName,
           description: `${task.taskName}の${PROCESS_NAMES[processType]}を行います。`,
           estimatedHours: taskHours,
-          taskName: task.taskName,
-          processType: processType,
-        });
+        };
+        taskChildren.push(taskTicket);
       }
     }
 
-    const result: HierarchicalTicketData = {
+    const result: ScreenTicketData = {
+      type: "screen",
+      screenName: screenGroup.screenName,
       subject: screenGroup.screenName,
       description: `${screenGroup.screenName}の${PROCESS_NAMES[processType]}関連タスクです。\n合計見積工数: ${screenHours}時間`,
       estimatedHours: 0, // 親チケットには予定工数を設定しない

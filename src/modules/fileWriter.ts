@@ -367,12 +367,9 @@ export class FileWriter {
     const levelClass = level <= 3 ? `level-${level}` : "level-4-plus";
     const indentClass =
       level > 0 ? (level <= 3 ? `indent-${level}` : "indent-4-plus") : "";
-    const taskNameDisplay = ticket.taskName || "-";
-    const processDisplay = ticket.processType
-      ? `<span class="process-badge ${ticket.processType}">${
-          PROCESS_NAMES[ticket.processType]
-        }</span>`
-      : "-";
+
+    const taskNameDisplay = this.getTaskNameDisplay(ticket);
+    const processDisplay = this.getProcessDisplay(ticket);
 
     return `
             <tr>
@@ -385,6 +382,31 @@ export class FileWriter {
                 <td class="hours">${ticket.estimatedHours}h</td>
                 <td class="description"><div class="description-content">${escapedDescription}</div></td>
             </tr>`;
+  }
+
+  /**
+   * プロセス表示を取得（型安全）
+   */
+  private getProcessDisplay(ticket: HierarchicalTicketData): string {
+    if (ticket.type === "process" || ticket.type === "task") {
+      return `<span class="process-badge ${ticket.processType}">${
+        PROCESS_NAMES[ticket.processType]
+      }</span>`;
+    }
+    return "-";
+  }
+
+  /**
+   * タスク名表示を取得（型安全）
+   */
+  private getTaskNameDisplay(ticket: HierarchicalTicketData): string {
+    if (ticket.type === "task") {
+      return ticket.taskName;
+    }
+    if (ticket.type === "screen") {
+      return ticket.screenName;
+    }
+    return "-";
   }
 
   /**

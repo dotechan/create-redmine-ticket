@@ -12,15 +12,38 @@ export interface ExcelConfig {
   endRow?: number;
 }
 
-// 階層構造チケットの型定義
-export interface HierarchicalTicketData {
+// 基本的なチケットデータ
+interface BaseTicketData {
   subject: string;
   description: string;
   estimatedHours: number;
-  processType?: ProcessType;
-  taskName?: string;
   children?: HierarchicalTicketData[];
 }
+
+// 工程チケット（親チケット）
+export interface ProcessTicketData extends BaseTicketData {
+  type: "process";
+  processType: ProcessType;
+}
+
+// 画面チケット（中間チケット）
+export interface ScreenTicketData extends BaseTicketData {
+  type: "screen";
+  screenName: string;
+}
+
+// タスクチケット（子チケット）
+export interface TaskTicketData extends BaseTicketData {
+  type: "task";
+  processType: ProcessType;
+  taskName: string;
+}
+
+// Union型で型安全性を確保
+export type HierarchicalTicketData =
+  | ProcessTicketData
+  | ScreenTicketData
+  | TaskTicketData;
 
 // 階層構造YAML用の型定義
 export interface HierarchicalTicketFile {
