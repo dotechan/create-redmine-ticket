@@ -1,0 +1,181 @@
+tickets:
+  - subject: 詳細設計
+    description: |-
+      プロジェクト全体の詳細設計工程です。
+      合計見積工数: 34時間
+    estimatedHours: 0
+    processType: detail_design
+    children:
+      - subject: ホーム画面
+        description: |-
+          ホーム画面の詳細設計関連タスクです。
+          合計見積工数: 24時間
+        estimatedHours: 0
+        children:
+          - subject: ログインする
+            description: ログインするの詳細設計を行います。
+            estimatedHours: 8
+            taskName: ログインする
+            processType: detail_design
+          - subject: ログアウトする
+            description: ログアウトするの詳細設計を行います。
+            estimatedHours: 8
+            taskName: ログアウトする
+            processType: detail_design
+          - subject: 一覧画面に遷移する
+            description: 一覧画面に遷移するの詳細設計を行います。
+            estimatedHours: 8
+            taskName: 一覧画面に遷移する
+            processType: detail_design
+      - subject: 一覧画面
+        description: |-
+          一覧画面の詳細設計関連タスクです。
+          合計見積工数: 6時間
+        estimatedHours: 0
+        children:
+          - subject: 一覧表示する
+            description: 一覧表示するの詳細設計を行います。
+            estimatedHours: 4
+            taskName: 一覧表示する
+            processType: detail_design
+          - subject: スクロールする
+            description: スクロールするの詳細設計を行います。
+            estimatedHours: 1
+            taskName: スクロールする
+            processType: detail_design
+          - subject: 詳細画面に遷移する
+            description: 詳細画面に遷移するの詳細設計を行います。
+            estimatedHours: 1
+            taskName: 詳細画面に遷移する
+            processType: detail_design
+      - subject: 詳細画面
+        description: |-
+          詳細画面の詳細設計関連タスクです。
+          合計見積工数: 4時間
+        estimatedHours: 0
+        children:
+          - subject: 詳細を表示する
+            description: 詳細を表示するの詳細設計を行います。
+            estimatedHours: 4
+            taskName: 詳細を表示する
+            processType: detail_design
+  - subject: 実装単体
+    description: |-
+      プロジェクト全体の実装単体工程です。
+      合計見積工数: 68時間
+    estimatedHours: 0
+    processType: implementation_unit
+    children:
+      - subject: ホーム画面
+        description: |-
+          ホーム画面の実装単体関連タスクです。
+          合計見積工数: 48時間
+        estimatedHours: 0
+        children:
+          - subject: ログインする
+            description: ログインするの実装単体を行います。
+            estimatedHours: 16
+            taskName: ログインする
+            processType: implementation_unit
+          - subject: ログアウトする
+            description: ログアウトするの実装単体を行います。
+            estimatedHours: 16
+            taskName: ログアウトする
+            processType: implementation_unit
+          - subject: 一覧画面に遷移する
+            description: 一覧画面に遷移するの実装単体を行います。
+            estimatedHours: 16
+            taskName: 一覧画面に遷移する
+            processType: implementation_unit
+      - subject: 一覧画面
+        description: |-
+          一覧画面の実装単体関連タスクです。
+          合計見積工数: 12時間
+        estimatedHours: 0
+        children:
+          - subject: 一覧表示する
+            description: 一覧表示するの実装単体を行います。
+            estimatedHours: 8
+            taskName: 一覧表示する
+            processType: implementation_unit
+          - subject: スクロールする
+            description: スクロールするの実装単体を行います。
+            estimatedHours: 2
+            taskName: スクロールする
+            processType: implementation_unit
+          - subject: 詳細画面に遷移する
+            description: 詳細画面に遷移するの実装単体を行います。
+            estimatedHours: 2
+            taskName: 詳細画面に遷移する
+            processType: implementation_unit
+      - subject: 詳細画面
+        description: |-
+          詳細画面の実装単体関連タスクです。
+          合計見積工数: 8時間
+        estimatedHours: 0
+        children:
+          - subject: 詳細を表示する
+            description: 詳細を表示するの実装単体を行います。
+            estimatedHours: 8
+            taskName: 詳細を表示する
+            processType: implementation_unit
+  - subject: 結合試験
+    description: |-
+      プロジェクト全体の結合試験工程です。
+      合計見積工数: 34時間
+    estimatedHours: 0
+    processType: integration_test
+    children:
+      - subject: ホーム画面
+        description: |-
+          ホーム画面の結合試験関連タスクです。
+          合計見積工数: 24時間
+        estimatedHours: 0
+        children:
+          - subject: ログインする
+            description: ログインするの結合試験を行います。
+            estimatedHours: 8
+            taskName: ログインする
+            processType: integration_test
+          - subject: ログアウトする
+            description: ログアウトするの結合試験を行います。
+            estimatedHours: 8
+            taskName: ログアウトする
+            processType: integration_test
+          - subject: 一覧画面に遷移する
+            description: 一覧画面に遷移するの結合試験を行います。
+            estimatedHours: 8
+            taskName: 一覧画面に遷移する
+            processType: integration_test
+      - subject: 一覧画面
+        description: |-
+          一覧画面の結合試験関連タスクです。
+          合計見積工数: 6時間
+        estimatedHours: 0
+        children:
+          - subject: 一覧表示する
+            description: 一覧表示するの結合試験を行います。
+            estimatedHours: 4
+            taskName: 一覧表示する
+            processType: integration_test
+          - subject: スクロールする
+            description: スクロールするの結合試験を行います。
+            estimatedHours: 1
+            taskName: スクロールする
+            processType: integration_test
+          - subject: 詳細画面に遷移する
+            description: 詳細画面に遷移するの結合試験を行います。
+            estimatedHours: 1
+            taskName: 詳細画面に遷移する
+            processType: integration_test
+      - subject: 詳細画面
+        description: |-
+          詳細画面の結合試験関連タスクです。
+          合計見積工数: 4時間
+        estimatedHours: 0
+        children:
+          - subject: 詳細を表示する
+            description: 詳細を表示するの結合試験を行います。
+            estimatedHours: 4
+            taskName: 詳細を表示する
+            processType: integration_test

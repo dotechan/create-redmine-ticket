@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redmineチケット作成予定一覧（階層構造）</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+        }
+        .summary {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .summary-item {
+            padding: 10px 15px;
+            background-color: white;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+        .summary-item strong {
+            display: block;
+            font-size: 1.2em;
+            color: #007bff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        th {
+            background-color: #495057;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        .ticket-level {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            text-align: center;
+            min-width: 60px;
+        }
+        .level-0 {
+            background-color: #dc3545;
+            color: white;
+        }
+        .level-1 {
+            background-color: #28a745;
+            color: white;
+        }
+        .level-2 {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .level-3 {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .level-4-plus {
+            background-color: #6c757d;
+            color: white;
+        }
+        .task-name {
+            font-weight: 500;
+        }
+        .task-indent {
+            position: relative;
+        }
+        .task-indent::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            color: #6c757d;
+        }
+        .indent-1::before { content: "└─"; left: 0; }
+        .indent-2::before { content: "　└─"; left: 0; }
+        .indent-3::before { content: "　　└─"; left: 0; }
+        .indent-4-plus::before { content: "　　　└─"; left: 0; }
+        .indent-1 { padding-left: 20px; }
+        .indent-2 { padding-left: 40px; }
+        .indent-3 { padding-left: 60px; }
+        .indent-4-plus { padding-left: 80px; }
+        .process-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+            text-align: center;
+        }
+        .detail_design {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+        .implementation {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+            border: 1px solid #ce93d8;
+        }
+        .unit_test {
+            background-color: #e8f5e8;
+            color: #388e3c;
+            border: 1px solid #a5d6a7;
+        }
+        .integration_test {
+            background-color: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #ffcc02;
+        }
+        .hours {
+            text-align: right;
+            font-weight: 600;
+            color: #495057;
+        }
+        .description {
+            max-width: 300px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+        .description-content {
+            white-space: pre-line;
+        }
+        @media (max-width: 768px) {
+            .summary {
+                flex-direction: column;
+            }
+            table {
+                font-size: 0.9em;
+            }
+            .description {
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Redmineチケット作成予定一覧（階層構造）</h1>
+        <p>以下のチケットがRedmineに作成される予定です。階層関係を確認してください。</p>
+        <div class="summary">
+            <div class="summary-item">
+                <strong>3</strong>
+                <span>ルートチケット</span>
+            </div>
+            <div class="summary-item">
+                <strong>33</strong>
+                <span>総チケット数</span>
+            </div>
+            <div class="summary-item">
+                <strong>136</strong>
+                <span>合計見積時間</span>
+            </div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>階層</th>
+                <th>タスク名</th>
+                <th>件名</th>
+                <th>工程</th>
+                <th>見積時間</th>
+                <th>説明</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            <tr>
+                <td><span class="ticket-level level-0">L0</span></td>
+                <td class="task-name task-indent ">-</td>
+                <td><strong>詳細設計</strong></td>
+                <td><span class="process-badge detail_design">詳細設計</span></td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">プロジェクト全体の詳細設計工程です。
+合計見積工数: 34時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-1">L1</span></td>
+                <td class="task-name task-indent indent-1">-</td>
+                <td><strong>ホーム画面</strong></td>
+                <td>-</td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">ホーム画面の詳細設計関連タスクです。
+合計見積工数: 24時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">ログインする</td>
+                <td><strong>ログインする</strong></td>
+                <td><span class="process-badge detail_design">詳細設計</span></td>
+                <td class="hours">8h</td>
+                <td class="description"><div class="description-content">ログインするの詳細設計を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">ログアウトする</td>
+                <td><strong>ログアウトする</strong></td>
+                <td><span class="process-badge detail_design">詳細設計</span></td>
+                <td class="hours">8h</td>
+                <td class="description"><div class="description-content">ログアウトするの詳細設計を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">一覧画面に遷移する</td>
+                <td><strong>一覧画面に遷移する</strong></td>
+                <td><span class="process-badge detail_design">詳細設計</span></td>
+                <td class="hours">8h</td>
+                <td class="description"><div class="description-content">一覧画面に遷移するの詳細設計を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-1">L1</span></td>
+                <td class="task-name task-indent indent-1">-</td>
+                <td><strong>一覧画面</strong></td>
+                <td>-</td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">一覧画面の詳細設計関連タスクです。
+合計見積工数: 6時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">一覧表示する</td>
+                <td><strong>一覧表示する</strong></td>
+                <td><span class="process-badge detail_design">詳細設計</span></td>
+                <td class="hours">4h</td>
+                <td class="description"><div class="description-content">一覧表示するの詳細設計を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">スクロールする</td>
+                <td><strong>スクロールする</strong></td>
+                <td><span class="process-badge detail_design">詳細設計</span></td>
+                <td class="hours">1h</td>
+                <td class="description"><div class="description-content">スクロールするの詳細設計を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">詳細画面に遷移する</td>
+                <td><strong>詳細画面に遷移する</strong></td>
+                <td><span class="process-badge detail_design">詳細設計</span></td>
+                <td class="hours">1h</td>
+                <td class="description"><div class="description-content">詳細画面に遷移するの詳細設計を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-1">L1</span></td>
+                <td class="task-name task-indent indent-1">-</td>
+                <td><strong>詳細画面</strong></td>
+                <td>-</td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">詳細画面の詳細設計関連タスクです。
+合計見積工数: 4時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">詳細を表示する</td>
+                <td><strong>詳細を表示する</strong></td>
+                <td><span class="process-badge detail_design">詳細設計</span></td>
+                <td class="hours">4h</td>
+                <td class="description"><div class="description-content">詳細を表示するの詳細設計を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-0">L0</span></td>
+                <td class="task-name task-indent ">-</td>
+                <td><strong>実装単体</strong></td>
+                <td><span class="process-badge implementation_unit">実装単体</span></td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">プロジェクト全体の実装単体工程です。
+合計見積工数: 68時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-1">L1</span></td>
+                <td class="task-name task-indent indent-1">-</td>
+                <td><strong>ホーム画面</strong></td>
+                <td>-</td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">ホーム画面の実装単体関連タスクです。
+合計見積工数: 48時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">ログインする</td>
+                <td><strong>ログインする</strong></td>
+                <td><span class="process-badge implementation_unit">実装単体</span></td>
+                <td class="hours">16h</td>
+                <td class="description"><div class="description-content">ログインするの実装単体を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">ログアウトする</td>
+                <td><strong>ログアウトする</strong></td>
+                <td><span class="process-badge implementation_unit">実装単体</span></td>
+                <td class="hours">16h</td>
+                <td class="description"><div class="description-content">ログアウトするの実装単体を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">一覧画面に遷移する</td>
+                <td><strong>一覧画面に遷移する</strong></td>
+                <td><span class="process-badge implementation_unit">実装単体</span></td>
+                <td class="hours">16h</td>
+                <td class="description"><div class="description-content">一覧画面に遷移するの実装単体を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-1">L1</span></td>
+                <td class="task-name task-indent indent-1">-</td>
+                <td><strong>一覧画面</strong></td>
+                <td>-</td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">一覧画面の実装単体関連タスクです。
+合計見積工数: 12時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">一覧表示する</td>
+                <td><strong>一覧表示する</strong></td>
+                <td><span class="process-badge implementation_unit">実装単体</span></td>
+                <td class="hours">8h</td>
+                <td class="description"><div class="description-content">一覧表示するの実装単体を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">スクロールする</td>
+                <td><strong>スクロールする</strong></td>
+                <td><span class="process-badge implementation_unit">実装単体</span></td>
+                <td class="hours">2h</td>
+                <td class="description"><div class="description-content">スクロールするの実装単体を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">詳細画面に遷移する</td>
+                <td><strong>詳細画面に遷移する</strong></td>
+                <td><span class="process-badge implementation_unit">実装単体</span></td>
+                <td class="hours">2h</td>
+                <td class="description"><div class="description-content">詳細画面に遷移するの実装単体を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-1">L1</span></td>
+                <td class="task-name task-indent indent-1">-</td>
+                <td><strong>詳細画面</strong></td>
+                <td>-</td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">詳細画面の実装単体関連タスクです。
+合計見積工数: 8時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">詳細を表示する</td>
+                <td><strong>詳細を表示する</strong></td>
+                <td><span class="process-badge implementation_unit">実装単体</span></td>
+                <td class="hours">8h</td>
+                <td class="description"><div class="description-content">詳細を表示するの実装単体を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-0">L0</span></td>
+                <td class="task-name task-indent ">-</td>
+                <td><strong>結合試験</strong></td>
+                <td><span class="process-badge integration_test">結合試験</span></td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">プロジェクト全体の結合試験工程です。
+合計見積工数: 34時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-1">L1</span></td>
+                <td class="task-name task-indent indent-1">-</td>
+                <td><strong>ホーム画面</strong></td>
+                <td>-</td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">ホーム画面の結合試験関連タスクです。
+合計見積工数: 24時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">ログインする</td>
+                <td><strong>ログインする</strong></td>
+                <td><span class="process-badge integration_test">結合試験</span></td>
+                <td class="hours">8h</td>
+                <td class="description"><div class="description-content">ログインするの結合試験を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">ログアウトする</td>
+                <td><strong>ログアウトする</strong></td>
+                <td><span class="process-badge integration_test">結合試験</span></td>
+                <td class="hours">8h</td>
+                <td class="description"><div class="description-content">ログアウトするの結合試験を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">一覧画面に遷移する</td>
+                <td><strong>一覧画面に遷移する</strong></td>
+                <td><span class="process-badge integration_test">結合試験</span></td>
+                <td class="hours">8h</td>
+                <td class="description"><div class="description-content">一覧画面に遷移するの結合試験を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-1">L1</span></td>
+                <td class="task-name task-indent indent-1">-</td>
+                <td><strong>一覧画面</strong></td>
+                <td>-</td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">一覧画面の結合試験関連タスクです。
+合計見積工数: 6時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">一覧表示する</td>
+                <td><strong>一覧表示する</strong></td>
+                <td><span class="process-badge integration_test">結合試験</span></td>
+                <td class="hours">4h</td>
+                <td class="description"><div class="description-content">一覧表示するの結合試験を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">スクロールする</td>
+                <td><strong>スクロールする</strong></td>
+                <td><span class="process-badge integration_test">結合試験</span></td>
+                <td class="hours">1h</td>
+                <td class="description"><div class="description-content">スクロールするの結合試験を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">詳細画面に遷移する</td>
+                <td><strong>詳細画面に遷移する</strong></td>
+                <td><span class="process-badge integration_test">結合試験</span></td>
+                <td class="hours">1h</td>
+                <td class="description"><div class="description-content">詳細画面に遷移するの結合試験を行います。</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-1">L1</span></td>
+                <td class="task-name task-indent indent-1">-</td>
+                <td><strong>詳細画面</strong></td>
+                <td>-</td>
+                <td class="hours">0h</td>
+                <td class="description"><div class="description-content">詳細画面の結合試験関連タスクです。
+合計見積工数: 4時間</div></td>
+            </tr>
+
+            <tr>
+                <td><span class="ticket-level level-2">L2</span></td>
+                <td class="task-name task-indent indent-2">詳細を表示する</td>
+                <td><strong>詳細を表示する</strong></td>
+                <td><span class="process-badge integration_test">結合試験</span></td>
+                <td class="hours">4h</td>
+                <td class="description"><div class="description-content">詳細を表示するの結合試験を行います。</div></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; font-size: 0.9em; color: #6c757d;">
+        <p><strong>注意事項:</strong></p>
+        <ul>
+            <li>階層構造に従って親子関係が設定されます。</li>
+            <li>見積時間は人日単位で表示されています。</li>
+            <li>実際のチケット作成前に、内容と階層関係に問題がないか確認してください。</li>
+        </ul>
+    </div>
+</body>
+</html>
